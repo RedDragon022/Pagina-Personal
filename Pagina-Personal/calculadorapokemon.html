@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>¿Qué Pokémon Eres?</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: grid;
+            place-items: center;
+            min-height: 90vh;
+            background-color: #f4f7f6;
+            color: #333;
+        }
+        .container {
+            background: #ffffff;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        h1 {
+            color: #e44d26; 
+        }
+        input[type="date"] {
+            width: calc(100% - 20px);
+            padding: 10px;
+            font-size: 1rem;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+        }
+        button {
+            background-color: #007bff; 
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #resultado {
+            margin-top: 1.5rem;
+            font-size: 1.2rem;
+            min-height: 150px; 
+        }
+        /* estetica retro */
+        #resultado img {
+            width: 120px;
+            height: 120px;
+            image-rendering: pixelated; 
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>¡Descubre tu Pokémon!</h1>
+        <p>Introduce tu fecha de nacimiento:</p>
+        
+        <input type="date" id="fecha-nacimiento">
+        <button id="btn-buscar">¡Buscar!</button>
+
+        <div id="resultado">
+            </div>
+    </div>
+
+    <script>
+        
+        document.addEventListener("DOMContentLoaded", () => {
+            
+            //  Obtencion de elementos del HTML
+            const inputFecha = document.getElementById("fecha-nacimiento");
+            const boton = document.getElementById("btn-buscar");
+            const divResultado = document.getElementById("resultado");
+
+            // Accionador (no se si sea el termino correcto )
+            boton.addEventListener("click", async () => {
+                
+                const valorFecha = inputFecha.value;
+
+                // --- Validación ---
+                if (!valorFecha) {
+                    divResultado.innerHTML = "<p>Por favor, selecciona una fecha.</p>";
+                    return;
+                }
+
+                divResultado.innerHTML = "<p>Buscando...</p>";
+
+                try {
+                    // --- Lógica de la fecha ---
+                    const fecha = new Date(valorFecha);
+                    const ano = fecha.getUTCFullYear();
+                    
+                    // Cálculo del día del año (Ej: 1 de Feb = 32)
+                    // Ej alterno: 1 de enero es dia 1
+                    const inicioDelAno = new Date(Date.UTC(ano, 0, 0));
+                    const diff = fecha - inicioDelAno;
+                    const unDia = 1000 * 60 * 60 * 24;
+                    const diaDelAno = Math.floor(diff / unDia);
+
+                    // --- Llamada a la API (Paso 1: Obtener el total) ---
+                    // Usamos "async/await" para manejar las llamadas a la API
+                    const respTotal = await fetch("https://pokeapi.co/api/v2/pokemon-species?limit=1");
+                    const dataTotal = await respTotal.json();
+                    const totalPokemon = dataTotal.count;
+
+                    //agregamos el +1 para evitar el 0 ya que no existe un pokemon con id 0 jeje
+                    const pokemonId = (diaDelAno + ano) % totalPokemon + 1;
+
+                    // --- Llamada a la API (Paso 2: Obtener el Pokémon) ---
+                    const respPokemon = await fetch(`https://pokeapi.co/api/v2/pokemon/${pokemonId}`);
+                    const dataPokemon = await respPokemon.json();
+
+                    const nombre = dataPokemon.name.charAt(0).toUpperCase() + dataPokemon.name.slice(1);
+                    const spriteUrl = dataPokemon.sprites.front_default;
+
+                    // --- Mostrar el resultado en el HTML ---
+                    //tanto en los juegos como en el api sprite es la forma del pokemon
+                    divResultado.innerHTML = `
+                        <h2>¡Tu Pokémon es ${nombre}!</h2>
+                        <img src="${spriteUrl}" alt="Sprite de ${nombre}">
+                    `;
+
+                } catch (error) {
+                    // Manejo de errores
+                    console.error("Error al buscar el Pokémon:", error);
+                    divResultado.innerHTML = "<p>Error al conectar con la API. Intenta de nuevo.</p>";
+                }
+            });
+        });
+    </script>
+
+</body>
+</html>
